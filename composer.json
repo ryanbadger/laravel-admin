@@ -1,0 +1,17 @@
+{
+    "name": "ryanbadger/laravel-admin",
+    "description": "A simple and flexible Laravel admin module.",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "RyanBadger\\LaravelAdmin\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "RyanBadger\\LaravelAdmin\\AdminModuleServiceProvider"
+            ]
+        }
+    }
+}
