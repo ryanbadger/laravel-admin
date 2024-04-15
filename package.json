@@ -6,9 +6,6 @@
   "name": "laravel-admin",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {
-    "vite": "^5.2.8"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

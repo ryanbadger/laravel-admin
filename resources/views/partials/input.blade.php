@@ -19,9 +19,7 @@
         }
     @endphp
 
-    <label for="{{ $field }}" class="form-label">{{ ucfirst(str_replace('_', ' ', $field)); }}</label>
-
-
+    <label for="{{ $field }}" class="form-label">{{ ucfirst(str_replace('_', ' ', $field)) }}</label>
 
     @if($inputType == 'textarea')
         <textarea class="form-control" name="{{ $field }}" id="{{ $field }}">{{ old($field, $value) }}</textarea>
