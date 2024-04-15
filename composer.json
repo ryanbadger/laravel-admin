@@ -13,5 +13,8 @@
                 "RyanBadger\\LaravelAdmin\\AdminModuleServiceProvider"
             ]
         }
+    },
+    "require": {
+        "doctrine/dbal": "^3.2"
     }
 }

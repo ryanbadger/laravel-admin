@@ -23,9 +23,22 @@
 
     @if($inputType == 'textarea')
         <textarea class="form-control" name="{{ $field }}" id="{{ $field }}">{{ old($field, $value) }}</textarea>
+        
+        <!-- Initialize CKEditor on textareas -->
+        <script>
+            ClassicEditor
+                .create( document.querySelector( '#' + @json($field) ) )
+                .catch( error => {
+                    console.error( error );
+                } );
+        </script>
+
+        
     @elseif($inputType == 'checkbox')
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="{{ $field }}" id="{{ $field }}" value="1" {{ old($field, $value) ? 'checked' : '' }}>
+        <div class="form-check form-switch">
+            <!-- Hidden input to ensure a value is sent when the checkbox is unchecked -->
+            <input type="hidden" name="{{ $field }}" value="0">
+            <input class="form-check-input" type="checkbox" role="switch" name="{{ $field }}" id="{{ $field }}" value="1" {{ old($field, $value) ? 'checked' : '' }}>
             <label class="form-check-label" for="{{ $field }}"></label>
         </div>
     @else

@@ -1,11 +1,11 @@
 @extends('laravel-admin::layouts.base')
 
-@section('title', 'Admin - ' . (isset($record) ? 'Edit' : 'Create') . ' ' . ucfirst(Str::singular($model)))
+@section('title', 'Admin - ' . (isset($record) ? 'Edit' : 'Create') . ' ' . Str::title(str_replace('_', ' ', Str::singular($slug))))
 
 @section('content')
     <div class="my-4">
-        <h1>{{ isset($record) ? 'Edit' : 'Create' }} {{ ucfirst(Str::singular($model)) }}</h1>
-        <form method="POST" action="{{ isset($record) ? route('admin.update', [$model, $record->id]) : route('admin.store', $model) }}" class="mt-4">
+        <h1>{{ isset($record) ? 'Edit' : 'Create' }} {{ Str::title(str_replace('_', ' ', Str::singular($slug))) }}</h1>
+        <form method="POST" action="{{ isset($record) ? route('admin.update', [$slug, $record->id]) : route('admin.store', $slug) }}" class="mt-4">
             @csrf
             @if (isset($record))
                 @method('PUT')
@@ -16,6 +16,12 @@
             @endforeach
 
             <button type="submit" class="btn btn-primary">{{ isset($record) ? 'Update' : 'Create' }}</button>
+
+            <!-- View Page Button -->
+            @if (isset($record))
+                <a target="_blank" href="{{ "/".$record["slug"] }}" class="btn btn-secondary">View Page</a>
+            @endif
+
         </form>
     </div>
 @endsection

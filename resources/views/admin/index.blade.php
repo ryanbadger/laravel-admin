@@ -1,11 +1,11 @@
 @extends('laravel-admin::layouts.base')
 
-@section('title', 'Admin - ' . ucfirst($model))
+@section('title', 'Admin - ' . ucfirst($slug))
 
 @section('content')
     <div class="my-4">
-        <h1>{{ ucfirst($model) }} Management</h1>
-        <a href="{{ route('admin.create', $model) }}" class="btn btn-primary">Create New {{ ucfirst(Str::singular($model)) }}</a>
+        <h1>{{ ucfirst($slug) }} Management</h1>
+        <a href="{{ route('admin.create', $slug) }}" class="btn btn-primary">Create New</a>
         
         <table class="table table-bordered table-striped mt-3">
             <thead class="table-dark">
@@ -32,8 +32,8 @@
                             </td>
                         @endforeach
                         <td>
-                            <a href="{{ route('admin.edit', [$model, $record->id]) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('admin.destroy', [$model, $record->id]) }}" method="POST" style="display: inline;">
+                            <a href="{{ route('admin.edit', [$slug, $record->id]) }}" class="btn btn-sm btn-warning">Edit</a>
+                            <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">Delete</button>

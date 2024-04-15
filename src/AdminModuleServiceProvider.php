@@ -54,12 +54,21 @@ class AdminModuleServiceProvider extends ServiceProvider
                 }
 
                 $fields = $this->getModelFields($tableName);
-                $models[$model] = ['fields' => $fields];  // Ensure 'fields' key exists
+                // Use a simple slug as the key
+                $slug = strtolower(class_basename($model));
+                $models[$slug] = [
+                    'class' => $model,
+                    'fields' => $fields
+                ];
+                \Log::info("Registering model: $model with slug $slug");
             }
 
             cache()->forever('admin_models', $models);
         }
     }
+
+
+
 
 
 
