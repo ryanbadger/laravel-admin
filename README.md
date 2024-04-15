@@ -23,6 +23,7 @@ Run the following command in your Laravel project:
 Publish the assets and configurations of the package:
 
 `php artisan vendor:publish --tag=laravel-admin-assets`
+
 `php artisan vendor:publish --provider="RyanBadger\LaravelAdmin\AdminModuleServiceProvider"`
 
 This command will publish the necessary views, config, and assets to your Laravel project.
