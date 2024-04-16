@@ -11,38 +11,12 @@ class ComposerStaticInit1407a96156016d0dc8c1ba64acf2cc46
         array (
             'RyanBadger\\LaravelAdmin\\' => 24,
         ),
-        'P' => 
-        array (
-            'Psr\\Log\\' => 8,
-            'Psr\\Cache\\' => 10,
-        ),
-        'D' => 
-        array (
-            'Doctrine\\Deprecations\\' => 22,
-            'Doctrine\\DBAL\\' => 14,
-        ),
     );
 
     public static $prefixDirsPsr4 = array (
         'RyanBadger\\LaravelAdmin\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
-        ),
-        'Psr\\Log\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/log/src',
-        ),
-        'Psr\\Cache\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/cache/src',
-        ),
-        'Doctrine\\Deprecations\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/deprecations/lib/Doctrine/Deprecations',
-        ),
-        'Doctrine\\DBAL\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/dbal/src',
         ),
     );
 

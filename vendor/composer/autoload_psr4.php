@@ -7,8 +7,4 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'RyanBadger\\LaravelAdmin\\' => array($baseDir . '/src'),
-    'Psr\\Log\\' => array($vendorDir . '/psr/log/src'),
-    'Psr\\Cache\\' => array($vendorDir . '/psr/cache/src'),
-    'Doctrine\\Deprecations\\' => array($vendorDir . '/doctrine/deprecations/lib/Doctrine/Deprecations'),
-    'Doctrine\\DBAL\\' => array($vendorDir . '/doctrine/dbal/src'),
 );
