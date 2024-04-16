@@ -2,7 +2,7 @@
     "name": "ryanbadger/laravel-admin",
     "description": "A simple and flexible Laravel admin module.",
     "version": "1.0.0",
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "license": "MIT",
     "type": "library",
     "autoload": {
