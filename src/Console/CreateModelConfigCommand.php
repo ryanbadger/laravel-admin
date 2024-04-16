@@ -72,24 +72,24 @@ class CreateModelConfigCommand extends Command
     protected function getModelFields($modelClass)
     {
         $modelInstance = new $modelClass; // Create an instance of the model
-        $columns = Schema::getColumnListing($modelInstance->getTable()); // Get all columns
+        $tableName = $modelInstance->getTable();
+        $columns = Schema::getColumnListing($tableName); // Get all columns
 
         $fields = [];
         foreach ($columns as $columnName) {
-            $columnDetails = Schema::getConnection()->getDoctrineColumn($modelInstance->getTable(), $columnName);
-            $type = Schema::getColumnType($modelInstance->getTable(), $columnName);
+            $type = Schema::getColumnType($tableName, $columnName);
 
-            // Check if the column type is 'enum'
-            if ($columnDetails->getType()->getName() === 'enum') {
-                // Handle 'enum' type differently, for example, treat it as a string
-                $type = 'string'; // Change type to string or any other appropriate type
+            // Optionally, add custom handling for specific types like 'enum'
+            if ($type === 'enum') {
+                $columnDetails = DB::select(DB::raw("SHOW COLUMNS FROM {$tableName} WHERE Field = '{$columnName}'"));
+                $type = $columnDetails[0]->Type; // This will include the enum values e.g., enum('value1','value2')
             }
 
             $fields[$columnName] = [
                 'type' => $type,
                 'editable' => in_array($columnName, $modelInstance->getFillable()), // Determine editability
-                'length' => $columnDetails->getLength(),
-                'nullable' => !$columnDetails->getNotnull(), // Determine if the column is nullable
+                'length' => null, // Length might not be relevant for all types
+                'nullable' => DB::select(DB::raw("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{$tableName}' AND COLUMN_NAME = '{$columnName}'"))[0]->IS_NULLABLE === 'YES',
                 'show_in_list' => in_array($columnName, $modelInstance->getFillable()), // Show in list if fillable
             ];
         }
