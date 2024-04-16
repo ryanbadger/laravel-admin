@@ -78,6 +78,13 @@ class CreateModelConfigCommand extends Command
         foreach ($columns as $columnName) {
             $columnDetails = Schema::getConnection()->getDoctrineColumn($modelInstance->getTable(), $columnName);
             $type = Schema::getColumnType($modelInstance->getTable(), $columnName);
+
+            // Check if the column type is 'enum'
+            if ($columnDetails->getType()->getName() === 'enum') {
+                // Handle 'enum' type differently, for example, treat it as a string
+                $type = 'string'; // Change type to string or any other appropriate type
+            }
+
             $fields[$columnName] = [
                 'type' => $type,
                 'editable' => in_array($columnName, $modelInstance->getFillable()), // Determine editability
@@ -89,6 +96,7 @@ class CreateModelConfigCommand extends Command
 
         return $fields;
     }
+
 
 
 
