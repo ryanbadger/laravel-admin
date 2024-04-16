@@ -1,0 +1,19 @@
+<?php
+
+namespace RyanBadger\LaravelAdmin\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class CheckCmsAccess
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $user = $request->user();
+        if (!in_array($user->email, config('admin_module.access_emails'))) {
+            abort(403, 'Unauthorized access to CMS.');
+        }
+
+        return $next($request);
+    }
+}

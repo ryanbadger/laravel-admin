@@ -2,34 +2,26 @@
 
 // Default configuration for the CMS package
 return [
+    // Example model configuration (this will be generated & populated by your own models automatically)
     'models' => [
-        // Example model configuration
         'page' => [
-            'class' => \App\Models\Page::class, // Specify the model class
+            'class' => \App\Models\Page::class,
             'fields' => [
-                'title' => 'string',  // Define field types for form generation or validation
+                'title' => 'string',
                 'slug' => 'string',
                 'content' => 'text',
                 'show_in_nav' => 'boolean',
             ],
             'validation' => [
-                'title' => 'required|string|max:255',  // Define Laravel validation rules
+                'title' => 'required|string|max:255',
                 'slug' => 'required|string|max:255',
                 'content' => 'required|string',
                 'show_in_nav' => 'boolean',
             ],
         ],
-        // Template for additional models
-        // 'post' => [
-        //     'class' => \App\Models\Post::class,
-        //     'fields' => [
-        //         'title' => 'string',
-        //         'body' => 'text',
-        //     ],
-        //     'validation' => [
-        //         'title' => 'required|string|max:255',
-        //         'body' => 'required|string',
-        //     ],
-        // ],
+    ],
+    // Add authorized emails for CMS access
+    'access_emails' => [
+        // 'admin@example.com',
     ],
 ];

@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Route;
 use RyanBadger\LaravelAdmin\Controllers\AdminController;
 
 // Ensuring all admin routes are under a specific namespace and middleware group
-Route::middleware(['web', 'auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['web', 'auth', 'cms.access'])->prefix('admin')->name('admin.')->group(function () {
+    Route::redirect('/', '/admin/dashboard'); // Redirect /admin to /admin/dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::get('/{slug}', [AdminController::class, 'index'])->name('index');

@@ -5,17 +5,27 @@ namespace RyanBadger\LaravelAdmin;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use RyanBadger\LaravelAdmin\Middleware\CheckCmsAccess;
+use RyanBadger\LaravelAdmin\Console\CreateModelConfigCommand;
 
 class AdminModuleServiceProvider extends ServiceProvider
 {
+
+    public function register()
+    {
+        $this->commands([
+            Console\CreateModelConfigCommand::class,
+        ]);
+    }
+
     public function boot()
     {
         \Log::info('AdminModuleServiceProvider booting...');
 
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-admin');
-
+        
         $this->publishes([
             __DIR__.'/../config/admin_module.php' => config_path('admin_module.php'),
         ], 'laravel-admin-config');
@@ -27,13 +37,9 @@ class AdminModuleServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/admin_module.php', 'admin_module');
 
         $this->registerModelInformation();
-    }
 
-    public function register()
-    {
-        $this->commands([
-            Console\CreateModelConfigCommand::class,
-        ]);
+        $this->app['router']->aliasMiddleware('cms.access', CheckCmsAccess::class);
+
     }
 
     protected function registerModelInformation()
@@ -54,7 +60,6 @@ class AdminModuleServiceProvider extends ServiceProvider
                 }
 
                 $fields = $this->getModelFields($tableName);
-                // Use a simple slug as the key
                 $slug = strtolower(class_basename($model));
                 $models[$slug] = [
                     'class' => $model,
@@ -66,11 +71,6 @@ class AdminModuleServiceProvider extends ServiceProvider
             cache()->forever('admin_models', $models);
         }
     }
-
-
-
-
-
 
     protected function getModelClassName($modelPath)
     {

@@ -5,15 +5,24 @@ namespace RyanBadger\LaravelAdmin\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Schema;
-
-
 
 class AdminController extends Controller
 {
+    // Helper to get the model configuration and handle missing model error
+    private function getModelConfig($slug)
+    {
+        $modelConfig = config("admin_module.models.$slug");
+
+        if (!$modelConfig) {
+            abort(404, 'Model not found');
+        }
+
+        return $modelConfig;
+    }
+
     public function dashboard()
     {
-        $models = cache('admin_models'); // Fetch the model data from cache
+        $models = config('admin_module.models');
         $modelData = [];
 
         foreach ($models as $slug => $details) {
@@ -36,123 +45,90 @@ class AdminController extends Controller
     
     public function index($slug)
     {
-        $models = cache('admin_models');
-        if (!isset($models[$slug])) {
-            abort(404, 'Model not found');
-        }
-
-        $modelClass = $models[$slug]['class'];
-        $fields = $models[$slug]['fields'];
-        $records = $modelClass::all();
-
-        return view('laravel-admin::admin.index', compact('records', 'slug', 'fields'));
-    }
-
-    public function store(Request $request, $slug)
-    {
-        $models = cache('admin_models');
-        if (!isset($models[$slug])) {
-            abort(404, 'Model not found');
-        }
-
-        $modelClass = $models[$slug]['class'];
-        $fields = $models[$slug]['fields'];
-        $validationRules = $this->getValidationRules($fields);
-        $validatedData = $request->validate($validationRules);
-        $record = $modelClass::create($validatedData);
-
-        return redirect()->route('admin.index', $slug)->with('success', 'Record created successfully!');
+        $modelConfig = $this->getModelConfig($slug);
+        $records = $modelConfig['class']::all();
+        return view('laravel-admin::admin.index', compact('records', 'slug', 'modelConfig'));
     }
 
     public function create($slug)
     {
-        $modelClass = $this->getModelClass($slug);
-        $fields = $this->getModelFields($modelClass);
-        return view('laravel-admin::admin.form', compact('slug', 'fields'));
+        $modelConfig = $this->getModelConfig($slug);
+        return view('laravel-admin::admin.form', compact('slug', 'modelConfig'));
     }
 
     public function edit($slug, $id)
     {
-        $modelClass = $this->getModelClass($slug);
-        $record = $modelClass::find($id);
+        $modelConfig = $this->getModelConfig($slug);
+        $record = $modelConfig['class']::find($id);
+
         if (!$record) {
             return redirect()->route('admin.index', $slug)->withErrors('Record not found.');
         }
-        $fields = $this->getModelFields($modelClass);
-        return view('laravel-admin::admin.form', compact('slug', 'record', 'fields'));
+
+        return view('laravel-admin::admin.form', compact('slug', 'record', 'modelConfig'));
+    }
+
+    public function store(Request $request, $slug)
+    {
+        $modelConfig = $this->getModelConfig($slug);
+        $validationRules = $this->generateValidationRules($modelConfig['fields']);
+        $validatedData = $request->validate($validationRules);
+        $modelConfig['class']::create($validatedData);
+        return redirect()->route('admin.index', $slug)->with('success', 'Record created successfully!');
     }
 
     public function update(Request $request, $slug, $id)
     {
-        $modelClass = $this->getModelClass($slug);
-        $record = $modelClass::findOrFail($id);
-
-        $fields = $this->getModelFields($modelClass);
-        $validationRules = $this->generateValidationRules($fields);
-
+        $modelConfig = $this->getModelConfig($slug);
+        $record = $modelConfig['class']::findOrFail($id);
+        $validationRules = $this->generateValidationRules($modelConfig['fields']);
         $validatedData = $request->validate($validationRules);
-
         $record->update($validatedData);
         return redirect()->route('admin.index', $slug)->with('success', 'Record updated successfully!');
     }
 
 
-
     public function destroy($slug, $id)
     {
-        $modelClass = $this->getModelClass($slug);
-        $record = $modelClass::findOrFail($id);
+        $modelConfig = $this->getModelConfig($slug);
+        $record = $modelConfig['class']::findOrFail($id);
         $record->delete();
         return redirect()->route('admin.index', $slug)->with('success', 'Record deleted successfully!');
     }
 
-    private function getModelClass($slug)
-{
-    $models = cache('admin_models');
-    if (!isset($models[$slug]) || !class_exists($models[$slug]['class'])) {
-        abort(404, "Model class for {$slug} not found.");
-    }
-    return $models[$slug]['class'];
-}
+    private function generateValidationRules($fields)
+    {
+        $rules = [];
+        foreach ($fields as $field => $details) {
+            if (!$details['editable']) {
+                continue;  // Skip fields that are not editable
+            }
 
-private function getModelFields($modelClass)
-{
-    $tableName = (new $modelClass)->getTable();
-    $columns = Schema::getColumnListing($tableName);
-    $fields = [];
+            // Start constructing the rule
+            $ruleParts = [];
 
-    foreach ($columns as $column) {
-        $columnType = Schema::getColumnType($tableName, $column);
-        $columnDetails = Schema::getConnection()->getDoctrineColumn($tableName, $column);
-        $length = $columnDetails->getLength();
-        // Corrected the condition here
-        $nullable = $columnDetails->getNotnull() ? 'required' : 'nullable';
+            // Add 'required' or 'nullable' based on some condition if needed
+            // Assuming you have a key to determine if the field is required
+            $ruleParts[] = isset($details['required']) && $details['required'] ? 'required' : 'nullable';
 
-        $fields[$column] = [
-            'type' => $columnType,
-            'length' => $length,
-            'nullable' => $nullable  // Correct usage of nullable or required
-        ];
-    }
+            // Add type-specific rules
+            if ($details['type'] === 'integer' || $details['type'] === 'tinyint') {
+                $ruleParts[] = 'integer';
+            } else {
+                $ruleParts[] = 'string';
+            }
 
-    return $fields;
-}
+            // Add max length if applicable
+            if (!empty($details['length'])) {
+                $ruleParts[] = "max:{$details['length']}";
+            }
 
-
-private function generateValidationRules($fields)
-{
-    $rules = [];
-    foreach ($fields as $field => $details) {
-        if ($field === 'id' || strpos($field, '_at') !== false) {
-            continue;  // Skip 'id' and timestamp fields
+            // Join all parts to form the complete rule
+            $rules[$field] = implode('|', $ruleParts);
         }
-
-        $typeRule = ($details['type'] === 'integer' || $details['type'] === 'tinyint') ? 'integer' : 'string';
-        $lengthRule = $details['length'] ? "|max:{$details['length']}" : '';
-        $rules[$field] = "{$details['nullable']}|$typeRule$lengthRule";
+        return $rules;
     }
-    return $rules;
-}
+
 
 
 }

@@ -15,24 +15,29 @@ class CreateModelConfigCommand extends Command
     public function handle()
     {
         $modelPaths = File::allFiles(app_path('Models'));
-        $config = [];
+        $config = $this->initialAdminModuleConfig(); // Load initial or existing config
 
         foreach ($modelPaths as $path) {
             $modelClass = $this->getModelClassName($path);
             if (!class_exists($modelClass)) {
+                $this->error("Skipped: Class $modelClass does not exist.");
                 continue;
             }
 
-            $tableName = (new $modelClass)->getTable();
-            if (!Schema::hasTable($tableName)) {
+            $modelInstance = new $modelClass();
+            if (!Schema::hasTable($modelInstance->getTable())) {
+                $this->error("Skipped: Table for model $modelClass does not exist.");
                 continue;
             }
 
-            $fields = $this->getModelFields($tableName);
-            $config[str_replace('\\', '', Str::snake($modelClass))] = [
+            $fields = $this->getModelFields($modelInstance);
+            $slug = Str::snake(class_basename($modelClass));
+
+            $config['models'][$slug] = [
                 'class' => $modelClass,
                 'fields' => $fields,
             ];
+            $this->info("Processed: $modelClass");
         }
 
         $path = config_path('admin_module.php');
@@ -40,20 +45,53 @@ class CreateModelConfigCommand extends Command
         $this->info('Model configuration generated/updated successfully.');
     }
 
+
+
+    protected function initialAdminModuleConfig()
+    {
+        // Load existing configuration if available
+        $defaultConfig = [
+            'models' => [],
+            'access_emails' => ['admin@example.com'], // Default admin access
+        ];
+        if (file_exists(config_path('admin_module.php'))) {
+            return include config_path('admin_module.php');
+        }
+        return $defaultConfig;
+    }
+
+
     protected function getModelClassName($modelPath)
     {
         $path = $modelPath->getRelativePathName();
-        return '\\App\\Models\\' . strtr(substr($path, 0, strrpos($path, '.')), '/', '\\');
+        $classNameWithExtension = substr($path, 0, strrpos($path, '.'));
+        $className = strtr($classNameWithExtension, '/', '\\');
+        return '\\App\\Models\\' . $className;
     }
 
-    protected function getModelFields($tableName)
+    protected function getModelFields($modelClass)
     {
-        $columns = Schema::getColumnListing($tableName);
+        $modelInstance = new $modelClass; // Create an instance of the model
+        $columns = Schema::getColumnListing($modelInstance->getTable()); // Get all columns
+
         $fields = [];
-        foreach ($columns as $column) {
-            $type = Schema::getColumnType($tableName, $column);
-            $fields[$column] = $type;
+        foreach ($columns as $columnName) {
+            $columnDetails = Schema::getConnection()->getDoctrineColumn($modelInstance->getTable(), $columnName);
+            $type = Schema::getColumnType($modelInstance->getTable(), $columnName);
+            $fields[$columnName] = [
+                'type' => $type,
+                'editable' => in_array($columnName, $modelInstance->getFillable()), // Determine editability
+                'length' => $columnDetails->getLength(),
+                'nullable' => !$columnDetails->getNotnull(), // Determine if the column is nullable
+                'show_in_list' => in_array($columnName, $modelInstance->getFillable()), // Show in list if fillable
+            ];
         }
+
         return $fields;
     }
+
+
+
+
+
 }

@@ -11,15 +11,24 @@
                 @method('PUT')
             @endif
 
-            @foreach ($fields as $field => $type)
-                @include('laravel-admin::partials.input', ['type' => $type, 'field' => $field, 'value' => old($field, $record->$field ?? '')])
-            @endforeach
+            <div class="row mb-4">
+                @foreach ($modelConfig['fields'] as $field => $attributes)
+                    <div class="{{ $attributes['type'] === 'text' ? 'col-12' : 'col-md-6' }}">
+                        @include('laravel-admin::partials.input', [
+                            'type' => $attributes['type'],
+                            'field' => $field,
+                            'value' => old($field, $record->$field ?? ''),
+                            'editable' => $attributes['editable']
+                        ])
+                    </div>
+                @endforeach
+            </div>
 
             <button type="submit" class="btn btn-primary">{{ isset($record) ? 'Update' : 'Create' }}</button>
 
-            <!-- View Page Button -->
-            @if (isset($record))
-                <a target="_blank" href="{{ "/".$record["slug"] }}" class="btn btn-secondary">View Page</a>
+            <!-- Optionally View Page Button if a specific method exists -->
+            @if (isset($record) && !empty($record->slug))
+                <a target="_blank" href="{{ url($record->slug) }}" class="btn btn-secondary">View Page</a>
             @endif
 
         </form>

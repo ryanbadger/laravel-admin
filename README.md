@@ -24,9 +24,10 @@ Publish the assets and configurations of the package:
 
 `php artisan vendor:publish --tag=laravel-admin-assets`
 
-`php artisan vendor:publish --provider="RyanBadger\LaravelAdmin\AdminModuleServiceProvider"`
+`php artisan admin:generate-model-config`
 
-This command will publish the necessary views, config, and assets to your Laravel project.
+These commands will publish the necessary views, config, and assets to your Laravel project.
+It will also scan your app for models, and populate the config file with the fields, types, whether they are required (based on the DB nullable status) and whether they are read only (based on the model fillable property)
 
 ### Step 3: Configure Your Models
 
