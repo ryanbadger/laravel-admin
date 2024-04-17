@@ -54,5 +54,8 @@
                 @endforeach
             </tbody>
         </table>
+
+        {{ $records->links() }}  {{-- Pagination links --}}
+
     </div>
 @endsection

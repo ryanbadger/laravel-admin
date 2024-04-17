@@ -14,9 +14,12 @@ class CreateModelConfigCommand extends Command
 
     public function handle()
     {
+        // Load existing configuration, or start with a default structure if not present
+        $existingConfig = config('admin_module', ['models' => [], 'access_emails' => ['admin@example.com']]);
+
         $config = [
             'models' => [],
-            'access_emails' => ['admin@example.com'], // Default admin access
+            'access_emails' => $existingConfig['access_emails'], // Preserve existing access emails
         ];
 
         $modelPaths = File::allFiles(app_path('Models'));
@@ -48,6 +51,7 @@ class CreateModelConfigCommand extends Command
         File::put($path, '<?php return ' . var_export($config, true) . ';');
         $this->info('Model configuration generated/updated successfully.');
     }
+
 
     protected function getModelClassName($modelPath)
     {

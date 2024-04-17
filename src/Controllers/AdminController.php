@@ -46,9 +46,11 @@ class AdminController extends Controller
     public function index($slug)
     {
         $modelConfig = $this->getModelConfig($slug);
-        $records = $modelConfig['class']::all();
+        // Here we are paginating the records, you can specify the number of records per page, here it's set to 10
+        $records = $modelConfig['class']::paginate(10);
         return view('laravel-admin::admin.index', compact('records', 'slug', 'modelConfig'));
     }
+
 
     public function create($slug)
     {
