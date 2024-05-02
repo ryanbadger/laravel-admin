@@ -38,27 +38,28 @@ Ensure that your models are set up correctly with the `$fillable` property to al
     protected $fillable = ['field1', 'field2', 'field3']; // etc. 
 }`
 
-`public function cmsFields() {
-        return [
-            'template' => [
-                'type' => 'select',
-                'label' => 'Template',
-                'options' => [
-                    'page' => 'Default Page',
-                    'videos' => 'Video Page'
-                ],
-                'editable' => true,
-                'required' => true,
-                'show_in_list' => true,
-            ],
-            'title' => [
-                'type' => 'text',
-                'label' => 'Title',
-                'editable' => true,
-                'required' => true,
-                'show_in_list' => true,
-            ],
-            ....`
+`public function cmsFields() {  
+    return [  
+        'template' => [  
+            'type' => 'select',  
+            'label' => 'Template',  
+            'options' => [  
+                'page' => 'Default Page',  
+                'videos' => 'Video Page'  
+            ],  
+            'editable' => true,  
+            'required' => true,  
+            'show_in_list' => true,  
+        ],  
+        'title' => [  
+            'type' => 'text',  
+            'label' => 'Title',  
+            'editable' => true,  
+            'required' => true,  
+            'show_in_list' => true,  
+        ],  
+        ....`
+
 
 ## Usage
 
