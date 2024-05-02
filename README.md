@@ -34,11 +34,18 @@ This commands will publish the necessary views and assets to your Laravel projec
 
 Ensure that your models are set up correctly with the `$fillable` property to allow mass assignment, and define the CMS fields.
 
-`class YourModel extends Model { 
-    protected $fillable = ['field1', 'field2', 'field3']; // etc. 
-}`
+```
+class YourModel extends Model { 
+    protected $fillable = [
+        'field1', 
+        'field2', 
+        'field3'
+    ]; 
+}
+```
 
-`public function cmsFields() {  
+```
+public function cmsFields() {  
     return [  
         'template' => [  
             'type' => 'select',  
@@ -58,7 +65,9 @@ Ensure that your models are set up correctly with the `$fillable` property to al
             'required' => true,  
             'show_in_list' => true,  
         ],  
-        ....`
+        ....
+```
+
 
 
 ## Usage
