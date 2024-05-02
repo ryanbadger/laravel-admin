@@ -216,27 +216,27 @@ class AdminController extends Controller
 
     protected function getModelClass($slug)
     {
-        // Assume default namespace for models
+        // Check if the model class exists in the default namespace
         $defaultNamespace = 'App\\Models\\';
-        $packageNamespace = 'RyanBadger\\LaravelAdmin\\Models\\';
+        $modelClass = $defaultNamespace . Str::studly($slug); // Ensure the class name is in StudlyCase
 
-        // Convert slug to StudlyCase which is typical class naming convention
-        // THIS BREAKS IF THE MODEL NAME IS NOT THE SAME AS THE TABLE NAME
-        // $modelName = Str::studly(Str::singular($slug));
-
-        $modelName = $slug;
-
-        // Check for the class in the default namespace
-        if (class_exists($defaultNamespace . $modelName)) {
-            return $defaultNamespace . $modelName;
+        if (class_exists($modelClass)) {
+            return $modelClass;
         }
+
         // If not found, check in the package namespace
-        elseif (class_exists($packageNamespace . $modelName)) {
-            return $packageNamespace . $modelName;
+        $packageNamespace = 'RyanBadger\\LaravelAdmin\\Models\\';
+        $modelClass = $packageNamespace . Str::studly($slug); // Ensure the class name is in StudlyCase
+
+        if (class_exists($modelClass)) {
+            return $modelClass;
         }
+
         // Handle the case where the model is not found
         abort(404, 'Model not found');
     }
+
+
 
 
     protected function getModelFields($modelInstance)

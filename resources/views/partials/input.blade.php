@@ -57,6 +57,9 @@
         
         @case('select')
             <select id="{{ $field }}" name="{{ $field }}" class="form-control" {{ !$editable ? 'disabled' : '' }}>
+                @if (!$attributes['required']) <!-- Check if the field is not required -->
+                    <option value="">Please select</option> <!-- Add the placeholder option -->
+                @endif
                 @foreach ($attributes['options'] as $optionKey => $optionValue)
                     <option value="{{ $optionKey }}" {{ (old($field, $value) == $optionKey) ? 'selected' : '' }}>
                         {{ $optionValue }}
