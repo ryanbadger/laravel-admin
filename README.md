@@ -46,26 +46,50 @@ class YourModel extends Model {
 
 ```
 public function cmsFields() {  
-    return [  
-        'template' => [  
-            'type' => 'select',  
-            'label' => 'Template',  
-            'options' => [  
-                'page' => 'Default Page',  
-                'videos' => 'Video Page'  
-            ],  
-            'editable' => true,  
-            'required' => true,  
-            'show_in_list' => true,  
-        ],  
-        'title' => [  
-            'type' => 'text',  
-            'label' => 'Title',  
-            'editable' => true,  
-            'required' => true,  
-            'show_in_list' => true,  
-        ],  
-        ....
+    return [
+            'title' => [
+                'type' => 'text', // Field type (text, textarea, select, checkbox, media, etc.)
+                'label' => 'Title', // Human-readable field name
+                'editable' => true, // Allow this field to be edited in the CMS
+                'required' => true, // Require this field to be filled out
+                'show_in_list' => true, // Show this field in the CMS list view
+                'searchable' => true, // Make this field searchable
+            ],
+            'template' => [
+                'type' => 'select', // Show a select dropdown with the options you define
+                'label' => 'Page Template',
+                'options' => [
+                    'page' => 'Default Page',
+                    'videos' => 'Video Page'
+                ],
+                'editable' => true,
+                'required' => true,
+                'show_in_list' => true,
+            ],
+            'show_in_nav' => [
+                'type' => 'checkbox', // Displays a bootstrap toggle
+                'label' => 'Show in Navigation',
+                'editable' => true,
+                'required' => true,
+            ],
+            'body' => [
+                'type' => 'textarea', // Displays a CKEditor WYSIWYG
+                'label' => 'Body',
+                'editable' => true,
+                'required' => false,
+                'searchable' => true,
+            ],
+            'media_upload' => [
+                'type' => 'media', // Displays a Dropzone.js uploader
+                'label' => 'Media Upload',
+                'multiple' => true,
+                'max_files' => 99,
+                'max_file_size' => 99, // in MB
+                'allowed_types' => 'image/jpeg,image/png,image/gif',
+                'editable' => true,
+                'required' => false,
+            ],
+        ];
 ```
 
 
