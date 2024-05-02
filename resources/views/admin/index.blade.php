@@ -2,60 +2,94 @@
 
 @section('title', 'Admin - ' . Str::title(str_replace('_', ' ', Str::singular($slug))))
 
+@section('header_buttons')
+    <a href="{{ route('admin.create', $slug) }}" class="btn btn-primary">Create New</a>
+@endsection
+
 @section('content')
     <div class="my-4">
-        <h1>{{ Str::title(str_replace('_', ' ', Str::singular($slug))) }} Management</h1>
-        <a href="{{ route('admin.create', $slug) }}" class="btn btn-primary">Create New</a>
-        
-        <table class="table table-bordered table-striped mt-3">
-            <thead class="table-dark">
-                <tr>
-                    @foreach ($modelConfig['fields'] as $fieldName => $details)
-                        @if ($details['show_in_list'])
-                            <th>
-                                {{ ucfirst(str_replace('_', ' ', $fieldName)) }}
-                                <i class="fas fa-{{ $details['type'] }}"></i> <!-- Update icon logic based on actual field types or remove if unnecessary -->
-                            </th>
+        <form action="{{ route('admin.index', $slug) }}" method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request('search') }}">
+                <select name="sort" class="form-select">
+                    <option value="">Sort By</option>
+                    @foreach ($fields as $field => $details)
+                        @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                            <option value="{{ $field }}" {{ request('sort') == $field ? 'selected' : '' }}>
+                                {{ ucfirst(str_replace('_', ' ', $field)) }}
+                            </option>
                         @endif
-                    @endforeach 
-                    <th>Actions</th>
-                </tr>                
-            </thead>
-            <tbody>
-                @foreach ($records as $record)
+                    @endforeach
+                </select>
+                <select name="direction" class="form-select">
+                    <option value="asc" {{ request('direction') == 'asc' ? 'selected' : '' }}>Ascending</option>
+                    <option value="desc" {{ request('direction') == 'desc' ? 'selected' : '' }}>Descending</option>
+                </select>
+                <button type="submit" class="btn btn-outline-secondary">Filter</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped mt-3">
+                <thead class="table-dark">
                     <tr>
-                        @foreach ($modelConfig['fields'] as $field => $details)
-                            @if ($details['show_in_list'])
-                                <td>
-                                    @if ($details['type'] === 'boolean')
-                                        {{ $record->$field ? 'Yes' : 'No' }}
-                                    @elseif ($details['type'] === 'datetime' && $record->$field)
-                                        {{ $record->$field->format('Y-m-d H:i:s') }} <!-- Formatting datetime -->
-                                    @else
-                                        {{ Str::limit($record->$field, 50) }} <!-- Adjust limit as necessary -->
-                                    @endif
-                                </td>
+                        @foreach ($fields as $fieldName => $details)
+                            @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                                <th>{{ ucfirst(str_replace('_', ' ', $fieldName)) }}</th>
                             @endif
                         @endforeach
-                        <td>
-                            <a href="{{ route('admin.edit', [$slug, $record->id]) }}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i>
-                            </a>
-
-                            <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
+                        <th>Actions</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($records as $record)
+                        <tr>
+                            @foreach ($fields as $field => $details)
+                                @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                                    <td>
+                                        @switch($details['type'])
+                                            @case('boolean')
+                                                {{ $record->$field ? 'Yes' : 'No' }}
+                                                @break
+                                            @case('datetime')
+                                                @if($record->$field)
+                                                    {{ $record->$field->format('Y-m-d H:i:s') }}
+                                                @endif
+                                                @break
+                                            @case('media')
+                                                @if ($record->isImage())
+                                                    <img width="64" height="64" src="{{ $record->getUrl() }}" alt="Preview" class="d-block m-auto object-fit-cover rounded">
+                                                @else
+                                                    <i class="d-block m-auto fas fa-4x fa-video"></i>
+                                                @endif
+                                                @break
+                                            
+                                            @default
+                                                {{ Str::limit($record->$field, 50) }}
+                                                @break
+                                        @endswitch
+                                    </td>
+                                @endif
+                            @endforeach
 
-        {{ $records->links() }}  {{-- Pagination links --}}
+                            <td>
+                                <a href="{{ route('admin.edit', [$slug, $record->id]) }}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
+        {{ $records->links() }}
     </div>
 @endsection

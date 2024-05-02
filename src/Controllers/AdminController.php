@@ -5,34 +5,27 @@ namespace RyanBadger\LaravelAdmin\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+
+use ReflectionClass;
+use ReflectionMethod;
 
 class AdminController extends Controller
 {
-    // Helper to get the model configuration and handle missing model error
-    private function getModelConfig($slug)
-    {
-        $modelConfig = config("admin_module.models.$slug");
-
-        if (!$modelConfig) {
-            abort(404, 'Model not found');
-        }
-
-        return $modelConfig;
-    }
-
     public function dashboard()
     {
-        $models = config('admin_module.models');
+        $modelClasses = $this->getAllModelClasses();
         $modelData = [];
 
-        foreach ($models as $slug => $details) {
-            $modelClass = $details['class'];
-            if (class_exists($modelClass)) {
-                $modelData[$slug] = [
-                    'count' => $modelClass::count(),
-                    'name' => Str::plural(class_basename($modelClass))
-                ];
-            }
+        foreach ($modelClasses as $modelClass) {
+            $slug = Str::snake(class_basename($modelClass));
+            $modelData[$slug] = [
+                'count' => $modelClass::count(),
+                'name' => Str::plural(class_basename($modelClass))
+            ];
         }
 
         return view('laravel-admin::admin.dashboard', compact('modelData'));
@@ -42,95 +35,323 @@ class AdminController extends Controller
     {
         return view('laravel-admin::admin.settings');
     }
-    
-    public function index($slug)
+
+    public function index(Request $request, $slug)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        // Here we are paginating the records, you can specify the number of records per page, here it's set to 10
-        $records = $modelConfig['class']::paginate(10);
-        return view('laravel-admin::admin.index', compact('records', 'slug', 'modelConfig'));
+        $modelClass = $this->getModelClass($slug);
+        $modelInstance = new $modelClass();
+
+        $fields = $this->getModelFields($modelInstance);
+
+        $query = $modelClass::query();
+
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where(function($query) use ($fields, $searchTerm) {
+                foreach ($fields as $field => $fieldDetails) {
+                    if ($fieldDetails['type'] !== 'relation' && isset($fieldDetails['searchable']) && $fieldDetails['searchable']) {
+                        $query->orWhere($field, 'like', "%{$searchTerm}%");
+                    }
+                }
+            });
+        }
+
+        if ($request->has('sort') && !empty($request->sort)) {
+            $sortDirection = $request->get('direction', 'asc');
+            $query->orderBy($request->sort, $sortDirection);
+        }
+
+        $records = $query->paginate(25);
+
+        return view('laravel-admin::admin.index', compact('records', 'slug', 'fields'));
     }
 
+    public function relationSearch(Request $request, $slug, $field)
+    {
+        $modelClass = $this->getModelClass($slug);
+        $fields = $this->getModelFields(new $modelClass());
+        $fieldDetails = $fields[$field];
+
+        if ($fieldDetails['type'] !== 'relation' || $fieldDetails['relation_type'] !== 'BelongsTo') {
+            abort(400, 'Invalid field for relation search.');
+        }
+
+        $relatedModelClass = $fieldDetails['related_model'];
+        $relatedFields = $this->getModelFields(new $relatedModelClass());
+        $searchableFields = array_filter($relatedFields, function($fieldDetails) {
+            return $fieldDetails['type'] !== 'relation';
+        });
+
+        $searchTerm = $request->input('search', '');
+        $query = $relatedModelClass::query();
+
+        if (!empty($searchableFields)) {
+            $query->where(function($q) use ($searchableFields, $searchTerm) {
+                foreach ($searchableFields as $field => $fieldDetails) {
+                    $q->orWhere($field, 'like', '%' . $searchTerm . '%');
+                }
+            });
+        }
+
+        $results = $query->take(10)
+                        ->get()
+                        ->map(function ($item) use ($searchableFields) {
+                            return [
+                                'id' => $item->getKey(),
+                                'text' => $item->{array_key_first($searchableFields)}
+                            ];
+                        });
+
+        return response()->json($results);
+    }
 
     public function create($slug)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        return view('laravel-admin::admin.form', compact('slug', 'modelConfig'));
+        $modelClass = $this->getModelClass($slug);
+        $modelInstance = new $modelClass();
+
+        $fields = $this->getModelFields($modelInstance);
+
+        $selectOptions = $this->getDynamicSelectOptions($fields);
+
+        return view('laravel-admin::admin.form', compact('slug', 'fields', 'selectOptions'));
     }
 
     public function edit($slug, $id)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        $record = $modelConfig['class']::find($id);
+        $modelClass = $this->getModelClass($slug);
+        $record = $modelClass::findOrFail($id);
 
-        if (!$record) {
-            return redirect()->route('admin.index', $slug)->withErrors('Record not found.');
-        }
+        $fields = $this->getModelFields($record);
 
-        return view('laravel-admin::admin.form', compact('slug', 'record', 'modelConfig'));
+        $selectOptions = $this->getDynamicSelectOptions($fields, $record);
+
+        return view('laravel-admin::admin.form', compact('slug', 'record', 'fields', 'selectOptions'));
     }
 
     public function store(Request $request, $slug)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        $validationRules = $this->generateValidationRules($modelConfig['fields']);
+        $modelClass = $this->getModelClass($slug);
+        $modelInstance = new $modelClass();
+
+        $fields = $this->getModelFields($modelInstance);
+
+        $validationRules = $this->generateValidationRules($fields);
         $validatedData = $request->validate($validationRules);
-        $modelConfig['class']::create($validatedData);
+
+        $record = $modelClass::create($validatedData);
+
+        foreach ($fields as $field => $attributes) {
+            if ($attributes['type'] === 'relation') {
+                if ($attributes['relation_type'] === 'BelongsTo') {
+                    $relatedModel = $attributes['related_model'];
+                    $relatedId = $validatedData[$field] ?? null;
+                    
+                    if ($relatedId) {
+                        $relatedRecord = $relatedModel::find($relatedId);
+                        $record->{$field}()->associate($relatedRecord);
+                    }
+                } elseif ($attributes['relation_type'] === 'HasMany') {
+                    $relatedData = $validatedData[$field] ?? [];
+                    
+                    foreach ($relatedData as $relatedRecord) {
+                        $record->{$field}()->create($relatedRecord);
+                    }
+                }
+            }
+        }
+
+        $record->save();
+
         return redirect()->route('admin.index', $slug)->with('success', 'Record created successfully!');
     }
 
     public function update(Request $request, $slug, $id)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        $record = $modelConfig['class']::findOrFail($id);
-        $validationRules = $this->generateValidationRules($modelConfig['fields']);
+        $modelClass = $this->getModelClass($slug);
+        $record = $modelClass::findOrFail($id);
+
+        $fields = $this->getModelFields($record);
+
+        $validationRules = $this->generateValidationRules($fields);
         $validatedData = $request->validate($validationRules);
-        $record->update($validatedData);
+
+        $record->fill($validatedData);
+
+        foreach ($fields as $field => $attributes) {
+            if ($attributes['type'] === 'relation') {
+                if ($attributes['relation_type'] === 'BelongsTo') {
+                    $relatedModel = $attributes['related_model'];
+                    $relatedId = $validatedData[$field] ?? null;
+                    
+                    if ($relatedId) {
+                        $relatedRecord = $relatedModel::find($relatedId);
+                        $record->{$field}()->associate($relatedRecord);
+                    } else {
+                        $record->{$field}()->dissociate();
+                    }
+                } elseif ($attributes['relation_type'] === 'HasMany') {
+                    $relatedData = $validatedData[$field] ?? [];
+                    
+                    $record->{$field}()->sync($relatedData);
+                }
+            }
+        }
+
+        $record->save();
+
         return redirect()->route('admin.index', $slug)->with('success', 'Record updated successfully!');
     }
 
 
+
     public function destroy($slug, $id)
     {
-        $modelConfig = $this->getModelConfig($slug);
-        $record = $modelConfig['class']::findOrFail($id);
+        $modelClass = $this->getModelClass($slug);
+        $record = $modelClass::findOrFail($id);
         $record->delete();
+
         return redirect()->route('admin.index', $slug)->with('success', 'Record deleted successfully!');
     }
 
-    private function generateValidationRules($fields)
+    protected function getModelClass($slug)
+    {
+        // Assume default namespace for models
+        $defaultNamespace = 'App\\Models\\';
+        $packageNamespace = 'RyanBadger\\LaravelAdmin\\Models\\';
+
+        // Convert slug to StudlyCase which is typical class naming convention
+        // THIS BREAKS IF THE MODEL NAME IS NOT THE SAME AS THE TABLE NAME
+        // $modelName = Str::studly(Str::singular($slug));
+
+        $modelName = $slug;
+
+        // Check for the class in the default namespace
+        if (class_exists($defaultNamespace . $modelName)) {
+            return $defaultNamespace . $modelName;
+        }
+        // If not found, check in the package namespace
+        elseif (class_exists($packageNamespace . $modelName)) {
+            return $packageNamespace . $modelName;
+        }
+        // Handle the case where the model is not found
+        abort(404, 'Model not found');
+    }
+
+
+    protected function getModelFields($modelInstance)
+    {
+        $fields = [];
+
+        if (method_exists($modelInstance, 'cmsFields')) {
+            $fields = $modelInstance->cmsFields();
+        }
+
+        return $fields;
+    }
+
+
+    protected function getDynamicSelectOptions($fields, $record = null)
+    {
+        $selectOptions = [];
+
+        foreach ($fields as $field => $fieldDetails) {
+            if ($fieldDetails['type'] === 'relation' && $fieldDetails['relation_type'] === 'BelongsTo') {
+                $relatedModelClass = $fieldDetails['related_model'];
+                // $selectOptions[$field] = $relatedModelClass::pluck('name', 'id');
+                $selectOptions[$field] = $relatedModelClass::pluck('title', 'id');
+            }
+        }
+
+        return $selectOptions;
+    }
+
+    protected function generateValidationRules($fields)
     {
         $rules = [];
-        foreach ($fields as $field => $details) {
-            if (!$details['editable']) {
-                continue;  // Skip fields that are not editable
+        foreach ($fields as $field => $fieldDetails) {
+            if (!$fieldDetails['editable']) {
+                continue;
             }
 
-            // Start constructing the rule
-            $ruleParts = [];
+            $ruleParts = $fieldDetails['required'] ?? false ? ['required'] : ['nullable'];
 
-            // Add 'required' or 'nullable' based on some condition if needed
-            // Assuming you have a key to determine if the field is required
-            $ruleParts[] = isset($details['required']) && $details['required'] ? 'required' : 'nullable';
-
-            // Add type-specific rules
-            if ($details['type'] === 'integer' || $details['type'] === 'tinyint') {
-                $ruleParts[] = 'integer';
-            } else {
-                $ruleParts[] = 'string';
+            switch ($fieldDetails['type']) {
+                case 'text':
+                case 'textarea':
+                case 'select':
+                    $ruleParts[] = 'string';
+                    break;
+                case 'checkbox':
+                    $ruleParts[] = 'boolean';
+                    break;
+                case 'number':
+                    $ruleParts[] = 'integer';
+                    break;
+                case 'date':
+                    $ruleParts[] = 'date';
+                    break;
+                case 'datetime-local':
+                    $ruleParts[] = 'date_format:Y-m-d\TH:i:s';
+                    break;
+                default:
+                    $ruleParts[] = 'string';
+                    break;
             }
 
-            // Add max length if applicable
-            if (!empty($details['length'])) {
-                $ruleParts[] = "max:{$details['length']}";
+            if (isset($fieldDetails['options'])) {
+                $ruleParts[] = 'in:' . implode(',', array_keys($fieldDetails['options']));
             }
 
-            // Join all parts to form the complete rule
             $rules[$field] = implode('|', $ruleParts);
         }
         return $rules;
     }
 
+    protected function getAllModelClasses()
+    {
+        $modelClasses = [];
+        $modelsPath = app_path('Models');
+        $modelFiles = File::allFiles($modelsPath);
 
+        foreach ($modelFiles as $modelFile) {
+            $modelClass = 'App\\Models\\' . $modelFile->getBasename('.php');
+            if (is_subclass_of($modelClass, Model::class)) {
+                $modelClasses[] = $modelClass;
+            }
+        }
 
+        // Explicitly add the Media model from the package
+        $modelClasses[] = \RyanBadger\LaravelAdmin\Models\Media::class;
+
+        return $modelClasses;
+    }
+
+    protected function convertColumnTypeToHtmlType($columnType)
+    {
+        switch ($columnType) {
+            case 'string':
+            case 'varchar':
+            case 'char':
+                return 'text';
+            case 'text':
+            case 'mediumtext':
+            case 'longtext':
+                return 'textarea';
+            case 'boolean':
+            case 'tinyint':
+                return 'checkbox';
+            case 'integer':
+            case 'bigint':
+            case 'smallint':
+                return 'number';
+            case 'date':
+                return 'date';
+            case 'datetime':
+            case 'timestamp':
+                return 'datetime-local';
+            default:
+                return 'text';
+        }
+    }
 }

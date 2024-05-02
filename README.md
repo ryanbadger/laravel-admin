@@ -18,29 +18,55 @@ Run the following command in your Laravel project:
 
 `composer require RyanBadger/laravel-admin`
 
-### Step 2: Publish the Assets
+### Step 2: Publish the Assets & Run Migration (for media support)
 
-Publish the assets and configurations of the package:
+Publish the assets for the package:
 
 `php artisan vendor:publish --tag=laravel-admin-assets`
 
-`php artisan admin:generate-model-config`
+Run Migration
 
-These commands will publish the necessary views, config, and assets to your Laravel project.
-It will also scan your app for models, and populate the config file with the fields, types, whether they are required (based on the DB nullable status) and whether they are read only (based on the model fillable property)
+`php artisan migrate`
+
+This commands will publish the necessary views and assets to your Laravel project, and create the Media model for file upload support on any model.
 
 ### Step 3: Configure Your Models
 
-Ensure that your models are set up correctly with the `$fillable` property to allow mass assignment:
-
+Ensure that your models are set up correctly with the `$fillable` property to allow mass assignment, and define the CMS fields.
 
 `class YourModel extends Model { 
     protected $fillable = ['field1', 'field2', 'field3']; // etc. 
 }`
 
+`public function cmsFields() {
+        return [
+            'template' => [
+                'type' => 'select',
+                'label' => 'Template',
+                'options' => [
+                    'page' => 'Default Page',
+                    'videos' => 'Video Page'
+                ],
+                'editable' => true,
+                'required' => true,
+                'show_in_list' => true,
+            ],
+            'title' => [
+                'type' => 'text',
+                'label' => 'Title',
+                'editable' => true,
+                'required' => true,
+                'show_in_list' => true,
+            ],
+            ....`
+
 ## Usage
 
-Once installed, navigate to `/admin/{model}` in your web browser to manage your models. `{model}` should be replaced with the actual model name in snake_case.
+Once installed, the last step is to grant access to your admin users.
+
+This package check your "users" table/model for an is_admin value. You should create this yourself, or if you prefer a different method, update the CMS middleware.
+
+Once logged in, navigate to `/admin/` in your web browser to manage your app.
 
 ### Dashboard
 
@@ -49,10 +75,6 @@ Access the dashboard at:
 `/admin/dashboard`
 
 This dashboard shows a summary of all models and their basic stats.
-
-## Customization
-
-You can extend the functionality by modifying the published config file in the `config/admin_module.php`.
 
 ## Contributing
 

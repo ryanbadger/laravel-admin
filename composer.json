@@ -13,7 +13,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "RyanBadger\\LaravelAdmin\\AdminModuleServiceProvider"
+                "RyanBadger\\LaravelAdmin\\Providers\\AdminModuleServiceProvider"
             ]
         }
     }

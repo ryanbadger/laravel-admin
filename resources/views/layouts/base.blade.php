@@ -6,12 +6,16 @@
     <title>Admin Panel</title>
     <!-- Include the CSS for the admin panel -->
     <link href="{{ asset('vendor/laravel-admin/css/admin.css') }}" rel="stylesheet">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Include your custom Bootstrap CSS -->
+    <link href="{{ asset('vendor/laravel-admin/css/bootstrap.min.css') }}" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link href="{{ asset('vendor/laravel-admin/css/all.min.css') }}" rel="stylesheet">
     <!-- Include the CKEditor script -->
-    <script src="https://cdn.ckeditor.com/ckeditor5/41.3.0/classic/ckeditor.js"></script>
+    <script src="{{ asset('vendor/laravel-admin/js/ckeditor.js') }}"></script>
+    <!-- Include your custom Bootstrap JavaScript -->
+    <script src="{{ asset('vendor/laravel-admin/js/bootstrap.min.js') }}"></script>
+
+
 </head>
 <body>
     <header class="navbar navbar-dark bg-dark sticky-top flex-md-nowrap p-0 shadow">
@@ -58,6 +62,8 @@
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">@yield('title')</h1>
+                    <!-- Placeholder for additional header buttons or links -->
+                    @yield('header_buttons')
                 </div>
 
                  <!-- Error Display Section -->
@@ -79,8 +85,6 @@
     
     <!-- Include the JavaScript for the admin panel -->
     <script type="module" src="{{ asset('vendor/laravel-admin/js/admin.js') }}"></script>
-    <!-- Bootstrap JavaScript Bundle (includes Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     
 
 </body>
