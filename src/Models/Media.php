@@ -32,7 +32,7 @@ class Media extends Model
     {
         return [
             'preview' => [
-                'type' => 'media', // Custom field type, assume your CMS can handle rendering an image
+                'type' => 'media', 
                 'label' => 'Preview',
                 'editable' => false,
                 'show_in_list' => true
@@ -40,7 +40,7 @@ class Media extends Model
             'file_name' => [
                 'type' => 'text',
                 'label' => 'File Name',
-                'editable' => false, // Typically not editable once uploaded
+                'editable' => false, 
                 'show_in_list' => true
             ],
             'file_path' => [
