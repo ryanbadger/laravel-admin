@@ -11,6 +11,7 @@ Route::middleware(['web', 'auth', 'cms.access'])->prefix('admin')->name('admin.'
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::post('/upload', [MediaController::class, 'upload'])->name('upload');
+    Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
     Route::get('/{slug}', [AdminController::class, 'index'])->name('index');
     Route::get('/{slug}/create', [AdminController::class, 'create'])->name('create');
     Route::post('/{slug}', [AdminController::class, 'store'])->name('store');

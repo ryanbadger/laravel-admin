@@ -39,4 +39,15 @@ class MediaController extends Controller
             'media_id' => $media->id
         ]);
     }
+
+    public function destroy(Media $media)
+    {
+        // Delete the file from storage
+        Storage::disk('public')->delete($media->file_path);
+
+        // Delete the media record
+        $media->delete();
+
+        return response()->json(['success' => true]);
+    }
 }

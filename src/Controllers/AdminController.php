@@ -41,6 +41,10 @@ class AdminController extends Controller
         $modelClass = $this->getModelClass($slug);
         $modelInstance = new $modelClass();
 
+        if (!method_exists($modelInstance, 'cmsFields')) {
+            abort(404, 'Model not found');
+        }
+
         $fields = $this->getModelFields($modelInstance);
 
         $query = $modelClass::query();
@@ -65,6 +69,7 @@ class AdminController extends Controller
 
         return view('laravel-admin::admin.index', compact('records', 'slug', 'fields'));
     }
+
 
     public function relationSearch(Request $request, $slug, $field)
     {
@@ -316,16 +321,19 @@ class AdminController extends Controller
 
         foreach ($modelFiles as $modelFile) {
             $modelClass = 'App\\Models\\' . $modelFile->getBasename('.php');
-            if (is_subclass_of($modelClass, Model::class)) {
+            if (is_subclass_of($modelClass, Model::class) && method_exists($modelClass, 'cmsFields')) {
                 $modelClasses[] = $modelClass;
             }
         }
 
-        // Explicitly add the Media model from the package
-        $modelClasses[] = \RyanBadger\LaravelAdmin\Models\Media::class;
+        // Explicitly add the Media model from the package if it has the cmsFields method
+        if (method_exists(\RyanBadger\LaravelAdmin\Models\Media::class, 'cmsFields')) {
+            $modelClasses[] = \RyanBadger\LaravelAdmin\Models\Media::class;
+        }
 
         return $modelClasses;
     }
+
 
     protected function convertColumnTypeToHtmlType($columnType)
     {
