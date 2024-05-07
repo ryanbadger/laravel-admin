@@ -11,7 +11,20 @@
                         .create(document.querySelector('#{{ $field }}'), {
                             ckfinder: {
                                 uploadUrl: '/admin/upload?_token={{ csrf_token() }}'
+                            },
+                            toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'outdent', 'indent', '|', 'imageUpload', 'blockQuote', 'insertTable', 'mediaEmbed', 'undo', 'redo', 'sourceEditing' ],
+                            // Disable content filtering
+                            htmlSupport: {
+                                allow: [
+                                    {
+                                        name: /.*/,
+                                        attributes: true,
+                                        classes: true,
+                                        styles: true
+                                    }
+                                ]
                             }
+
                         })
                         .catch(error => {
                             console.error(error);

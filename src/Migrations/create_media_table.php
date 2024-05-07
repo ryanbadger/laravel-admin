@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('type');
             $table->integer('size');
-            $table->unsignedBigInteger('mediaable_id');
-            $table->string('mediaable_type');
+            $table->unsignedBigInteger('mediaable_id')->nullable();
+            $table->string('mediaable_type')->nullable();
             $table->integer('order')->default(0);
             $table->timestamps();
             $table->softDeletes();

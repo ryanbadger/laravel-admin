@@ -47,7 +47,7 @@
                                 <h6 class="card-title d-block text-truncate" title="{{ $media->file_name }}">
                                     {{ $media->file_name }}
                                 </h6>
-                                <button type="button" class="btn btn-danger btn-sm mt-2" data-media-id="{{ $media->id }}" onclick="deleteMedia({{ $media->id }})">
+                                <button type="button" class="btn btn-danger btn-sm mt-2" data-media-id="{{ $media->id }}" onclick="deleteMedia(event, {{ $media->id }})">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
@@ -80,7 +80,9 @@
 @endsection
 
 @if (isset($record) && isset($fields['media_upload']))
+
     <link href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" rel="stylesheet">
+
     <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
     <script>
         Dropzone.options.mediaDropzone = {
@@ -113,9 +115,10 @@
                                     </div>
                                     <div class="card-body d-flex flex-column justify-content-center text-center">
                                         <h6 class="card-title d-block text-truncate" title="${response.fileName}">${response.fileName}</h6>
-                                        <button type="button" class="btn btn-danger btn-sm mt-2" data-media-id="${response.media_id}" onclick="deleteMedia(${response.media_id})">
+                                        <a href="javascript:void(0);" class="btn btn-danger btn-sm mt-2" data-media-id="${response.media_id}" onclick="deleteMedia(event, ${response.media_id})">
                                             <i class="fas fa-trash"></i> Delete
-                                        </button>
+                                        </a>
+
                                     </div>
                                 </div>
                             </div>
@@ -129,22 +132,23 @@
             }
         };
 
-        function deleteMedia(mediaId) {
+        function deleteMedia(event, mediaId) {
+            event.preventDefault();
+
             if (confirm('Are you sure you want to delete this media item?')) {
-                // Send an AJAX request to delete the media item
                 var xhr = new XMLHttpRequest();
-                xhr.open('DELETE', '{{ route("admin.media.destroy", ":id") }}'.replace(':id', mediaId), true);
+                xhr.open('POST', '{{ route("admin.media.destroy", ":id") }}'.replace(':id', mediaId), true);
                 xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                 xhr.onload = function() {
                     if (xhr.status === 200) {
-                        // Remove the deleted media item from the DOM
                         var mediaElement = document.querySelector('[data-media-id="' + mediaId + '"]').closest('.col-sm-4');
                         mediaElement.remove();
                     } else {
                         console.error('Error deleting media item:', xhr.responseText);
                     }
                 };
-                xhr.send();
+                xhr.send('_method=DELETE');
             }
         }
     </script>

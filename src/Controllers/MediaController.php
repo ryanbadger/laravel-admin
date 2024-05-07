@@ -11,32 +11,49 @@ class MediaController extends Controller
 {
     public function upload(Request $request)
     {
+        // Determine the correct file input name ('file' for Dropzone, 'upload' for CKEditor)
+        $fileInput = $request->hasFile('upload') ? 'upload' : 'file';
+
         $request->validate([
-            'file' => 'required|file|max:102400', // Adjusted for up to 100 MB files
-            'model_type' => 'required|string', // Type of the model (e.g., 'App\Models\Page')
-            'model_id' => 'required|integer', // ID of the model instance
+            $fileInput => 'required|file|max:102400', // Adjusted for up to 100 MB files
+            'model_type' => 'sometimes|string', // Type of the model (e.g., 'App\\Models\\Page')
+            'model_id' => 'sometimes|integer', // ID of the model instance
         ]);
 
-        $file = $request->file('file');
+        $file = $request->file($fileInput);
         $path = $file->store('uploads', 'public');
 
-        // Create a new media instance and link it to the model
+        // Create a new media instance
         $media = new Media([
             'file_name' => $file->getClientOriginalName(),
             'file_path' => $path,
             'size' => $file->getSize(),
             'type' => $file->getClientMimeType(),
-            'mediaable_id' => $request->input('model_id'),
-            'mediaable_type' => $request->input('model_type'),
         ]);
+
+        // Link the media to the model if model_type and model_id are provided
+        if ($request->has('model_type') && $request->has('model_id')) {
+            $media->mediaable_type = $request->input('model_type');
+            $media->mediaable_id = $request->input('model_id');
+        }
 
         $media->save();
 
+        // Check if the request is coming from CKEditor
+        if ($request->has('upload')) {
+            $url = asset('storage/' . $path);
+            return response()->json([
+                'uploaded' => 1,
+                'url' => $url
+            ]);
+        }
+
+        // Default response for Dropzone or other requests
         return response()->json([
-            'success' => true, 
-            'fileName' => $media->file_name, 
+            'success' => true,
+            'fileName' => $media->file_name,
             'url' => asset('storage/' . $path),
-            'media_id' => $media->id
+            'media_id' => $media->id,
         ]);
     }
 
@@ -47,7 +64,8 @@ class MediaController extends Controller
 
         // Delete the media record
         $media->delete();
+        return redirect()->back()->with('success', 'Record deleted successfully!');
 
-        return response()->json(['success' => true]);
+        // return response()->json(['success' => true]);
     }
 }
