@@ -34,5 +34,12 @@ class AdminModuleServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../src/Migrations' => database_path('migrations')
         ], 'laravel-admin-migrations');
+
+        // Read the composer.json file of the package
+        $composerJson = file_get_contents(__DIR__.'/../../composer.json');
+        $composerConfig = json_decode($composerJson, true);
+
+        // Share the package version with all views
+        view()->share('laravel_admin_version', $composerConfig['version']);
     }
 }
