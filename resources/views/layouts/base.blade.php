@@ -26,7 +26,7 @@
     </header>
     <div class="container-fluid">
         <div class="row">
-            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse custom-sidebar d-flex flex-column justify-content-between">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item">
@@ -59,7 +59,10 @@
                 </div>
 
                 {{-- Render the package version in your view --}}
-                <p>Package Version: {{ $laravel_admin_version }}</p>
+                <div>
+                    <!-- "Package Version" paragraph -->
+                    <p class="text-center">v{{ $laravel_admin_version }}</p>
+                </div>
 
             </nav>
 
