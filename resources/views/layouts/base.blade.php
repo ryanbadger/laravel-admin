@@ -19,15 +19,17 @@
 </head>
 <body>
     <header class="navbar navbar-dark bg-dark sticky-top flex-md-nowrap p-0 shadow">
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Admin Panel</a>
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">
+            Admin Panel v{{ $laravel_admin_version }}
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
     </header>
     <div class="container-fluid">
         <div class="row">
-            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse custom-sidebar d-flex flex-column justify-content-between">
-                <div class="position-sticky pt-3">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse custom-sidebar vh-100">
+                <div class="position-sticky pt-3 d-flex flex-column h-100">
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link active" href="{{ route('admin.dashboard') }}">
@@ -58,11 +60,6 @@
                     
                 </div>
 
-                {{-- Render the package version in your view --}}
-                <div>
-                    <!-- "Package Version" paragraph -->
-                    <p class="text-center">v{{ $laravel_admin_version }}</p>
-                </div>
 
             </nav>
 
