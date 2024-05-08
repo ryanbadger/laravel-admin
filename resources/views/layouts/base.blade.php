@@ -56,6 +56,16 @@
                                 <i class="fas fa-cog"></i> Settings
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                @csrf
+                            </form>
+                            <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign out
+                            </a> 
+                        </li>
+
                     </ul>
                     
                 </div>
