@@ -17,7 +17,7 @@
                         'type' => $attributes['type'],
                         'field' => $field,
                         'attributes' => $attributes,
-                        'value' => $fieldValues[$field],
+                        'value' => $fieldValues[$field] ?? null,
                         'editable' => $attributes['editable'],
                         'record' => $record ?? null
                     ])

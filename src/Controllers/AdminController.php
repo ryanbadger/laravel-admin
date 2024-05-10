@@ -71,6 +71,7 @@ class AdminController extends Controller
         $modelInstance = new $modelClass();
 
         $fields = $this->getModelFields($modelInstance);
+        
 
         return view('laravel-admin::admin.form', compact('slug', 'fields'));
     }
@@ -107,16 +108,17 @@ class AdminController extends Controller
         $validationRules = $this->generateValidationRules($fields);
         $validatedData = $request->validate($validationRules);
 
-        // / Manually handle the nested JSON data if present
+        // Manually handle the nested JSON data if present
         $dataFields = $request->input('data', []);
         if (!empty($dataFields)) {
-            $record->data = $dataFields; // directly assign validated data
+            $validatedData['data'] = $dataFields; // directly assign validated data to the validatedData array
         }
 
         $modelInstance->fill($validatedData);
         $modelInstance->save();
 
-        return redirect()->route('admin.index', $slug)->with('success', 'Record created successfully!');
+        // redirect to the edit page
+        return redirect()->route('admin.edit', ['slug' => $slug, 'id' => $modelInstance->id])->with('success', 'Record created successfully!');
     }
 
     public function update(Request $request, $slug, $id)
@@ -139,7 +141,7 @@ class AdminController extends Controller
         $record->fill($validatedData);
         $record->save();
         
-        return redirect()->route('admin.index', $slug)->with('success', 'Record updated successfully!');
+        return back()->with('success', 'Record updated successfully!');
     }
 
 
