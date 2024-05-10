@@ -153,3 +153,25 @@
         }
     </script>
 @endif
+
+
+
+
+{{-- Slug generator --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('#title') && document.querySelector('#slug')) {
+            console.log('DOM loaded and both title and slug elements exist');
+            const titleInput = document.querySelector('#title');
+            const slugInput = document.querySelector('#slug');
+
+            titleInput.addEventListener('input', function() {
+                slugInput.value = this.value
+                    .toLowerCase()
+                    .replace(/[\s+]/g, '-')   // Replace spaces with -
+                    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+                    .replace(/\-\-+/g, '-');  // Replace multiple - with single -
+            });
+        }
+    });
+</script>
