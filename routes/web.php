@@ -18,7 +18,5 @@ Route::middleware(['web', 'auth', 'cms.access'])->prefix('admin')->name('admin.'
     Route::get('/{slug}/{id}/edit', [AdminController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
     Route::put('/{slug}/{id}', [AdminController::class, 'update'])->name('update')->where('id', '[0-9]+');
     Route::delete('/{slug}/{id}', [AdminController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
-    // Dynamic AJAX route for relationship searches
-    Route::get('/{slug}/relation-search/{field}', [AdminController::class, 'relationSearch'])->name('relation.search');
 
 });

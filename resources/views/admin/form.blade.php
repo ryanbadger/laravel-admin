@@ -17,12 +17,13 @@
                         'type' => $attributes['type'],
                         'field' => $field,
                         'attributes' => $attributes,
-                        'value' => old($field, $record->$field ?? ''),
+                        'value' => $fieldValues[$field],
                         'editable' => $attributes['editable'],
                         'record' => $record ?? null
                     ])
                 </div>
             @endforeach
+
         </div>
 
         <!-- Display attached media -->

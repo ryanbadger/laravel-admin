@@ -14,7 +14,7 @@
                 <select name="sort" class="form-select">
                     <option value="">Sort By</option>
                     @foreach ($fields as $field => $details)
-                        @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                        @if ($details['show_in_list'] ?? false)
                             <option value="{{ $field }}" {{ request('sort') == $field ? 'selected' : '' }}>
                                 {{ ucfirst(str_replace('_', ' ', $field)) }}
                             </option>
@@ -34,7 +34,7 @@
                 <thead class="table-dark">
                     <tr>
                         @foreach ($fields as $fieldName => $details)
-                            @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                            @if ($details['show_in_list'] ?? false)
                                 <th>{{ ucfirst(str_replace('_', ' ', $fieldName)) }}</th>
                             @endif
                         @endforeach
@@ -45,15 +45,20 @@
                     @foreach ($records as $record)
                         <tr>
                             @foreach ($fields as $field => $details)
-                                @if (isset($details['show_in_list']) && $details['type'] !== 'relation')
+                                @if ($details['show_in_list'] ?? false)
                                     <td>
+                                        @php
+                                            // Determine if the field is a nested 'data' field and fetch appropriately
+                                            $value = Str::startsWith($field, 'data[') ? data_get($record->data, Str::between($field, 'data[', ']')) : $record->$field;
+                                        @endphp
+
                                         @switch($details['type'])
                                             @case('boolean')
-                                                {{ $record->$field ? 'Yes' : 'No' }}
+                                                {{ $value ? 'Yes' : 'No' }}
                                                 @break
                                             @case('datetime')
-                                                @if($record->$field)
-                                                    {{ $record->$field->format('Y-m-d H:i:s') }}
+                                                @if($value)
+                                                    {{ $value->format('Y-m-d H:i:s') }}
                                                 @endif
                                                 @break
                                             @case('media')
@@ -65,7 +70,7 @@
                                                 @break
                                             
                                             @default
-                                                {{ Str::limit($record->$field, 50) }}
+                                                {{ Str::limit($value, 50) }}
                                                 @break
                                         @endswitch
                                     </td>
@@ -86,6 +91,7 @@
                             </td>
                         </tr>
                     @endforeach
+
                 </tbody>
             </table>
         </div>

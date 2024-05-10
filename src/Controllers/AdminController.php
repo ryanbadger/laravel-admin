@@ -5,13 +5,8 @@ namespace RyanBadger\LaravelAdmin\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
-
-use ReflectionClass;
-use ReflectionMethod;
 
 class AdminController extends Controller
 {
@@ -53,7 +48,7 @@ class AdminController extends Controller
             $searchTerm = $request->search;
             $query->where(function($query) use ($fields, $searchTerm) {
                 foreach ($fields as $field => $fieldDetails) {
-                    if ($fieldDetails['type'] !== 'relation' && isset($fieldDetails['searchable']) && $fieldDetails['searchable']) {
+                    if (isset($fieldDetails['searchable']) && $fieldDetails['searchable']) {
                         $query->orWhere($field, 'like', "%{$searchTerm}%");
                     }
                 }
@@ -70,46 +65,6 @@ class AdminController extends Controller
         return view('laravel-admin::admin.index', compact('records', 'slug', 'fields'));
     }
 
-
-    public function relationSearch(Request $request, $slug, $field)
-    {
-        $modelClass = $this->getModelClass($slug);
-        $fields = $this->getModelFields(new $modelClass());
-        $fieldDetails = $fields[$field];
-
-        if ($fieldDetails['type'] !== 'relation' || $fieldDetails['relation_type'] !== 'BelongsTo') {
-            abort(400, 'Invalid field for relation search.');
-        }
-
-        $relatedModelClass = $fieldDetails['related_model'];
-        $relatedFields = $this->getModelFields(new $relatedModelClass());
-        $searchableFields = array_filter($relatedFields, function($fieldDetails) {
-            return $fieldDetails['type'] !== 'relation';
-        });
-
-        $searchTerm = $request->input('search', '');
-        $query = $relatedModelClass::query();
-
-        if (!empty($searchableFields)) {
-            $query->where(function($q) use ($searchableFields, $searchTerm) {
-                foreach ($searchableFields as $field => $fieldDetails) {
-                    $q->orWhere($field, 'like', '%' . $searchTerm . '%');
-                }
-            });
-        }
-
-        $results = $query->take(10)
-                        ->get()
-                        ->map(function ($item) use ($searchableFields) {
-                            return [
-                                'id' => $item->getKey(),
-                                'text' => $item->{array_key_first($searchableFields)}
-                            ];
-                        });
-
-        return response()->json($results);
-    }
-
     public function create($slug)
     {
         $modelClass = $this->getModelClass($slug);
@@ -117,9 +72,7 @@ class AdminController extends Controller
 
         $fields = $this->getModelFields($modelInstance);
 
-        $selectOptions = $this->getDynamicSelectOptions($fields);
-
-        return view('laravel-admin::admin.form', compact('slug', 'fields', 'selectOptions'));
+        return view('laravel-admin::admin.form', compact('slug', 'fields'));
     }
 
     public function edit($slug, $id)
@@ -129,10 +82,20 @@ class AdminController extends Controller
 
         $fields = $this->getModelFields($record);
 
-        $selectOptions = $this->getDynamicSelectOptions($fields, $record);
+        // Prepare field values including nested data fields
+        $fieldValues = [];
+        foreach ($fields as $field => $attributes) {
+            if (Str::startsWith($field, 'data[')) {
+                $key = Str::between($field, 'data[', ']');
+                $fieldValues[$field] = old($field, $record->data[$key] ?? null);
+            } else {
+                $fieldValues[$field] = old($field, $record->$field);
+            }
+        }
 
-        return view('laravel-admin::admin.form', compact('slug', 'record', 'fields', 'selectOptions'));
+        return view('laravel-admin::admin.form', compact('slug', 'record', 'fields', 'fieldValues'));
     }
+
 
     public function store(Request $request, $slug)
     {
@@ -144,29 +107,14 @@ class AdminController extends Controller
         $validationRules = $this->generateValidationRules($fields);
         $validatedData = $request->validate($validationRules);
 
-        $record = $modelClass::create($validatedData);
-
-        foreach ($fields as $field => $attributes) {
-            if ($attributes['type'] === 'relation') {
-                if ($attributes['relation_type'] === 'BelongsTo') {
-                    $relatedModel = $attributes['related_model'];
-                    $relatedId = $validatedData[$field] ?? null;
-                    
-                    if ($relatedId) {
-                        $relatedRecord = $relatedModel::find($relatedId);
-                        $record->{$field}()->associate($relatedRecord);
-                    }
-                } elseif ($attributes['relation_type'] === 'HasMany') {
-                    $relatedData = $validatedData[$field] ?? [];
-                    
-                    foreach ($relatedData as $relatedRecord) {
-                        $record->{$field}()->create($relatedRecord);
-                    }
-                }
-            }
+        // / Manually handle the nested JSON data if present
+        $dataFields = $request->input('data', []);
+        if (!empty($dataFields)) {
+            $record->data = $dataFields; // directly assign validated data
         }
 
-        $record->save();
+        $modelInstance->fill($validatedData);
+        $modelInstance->save();
 
         return redirect()->route('admin.index', $slug)->with('success', 'Record created successfully!');
     }
@@ -175,39 +123,24 @@ class AdminController extends Controller
     {
         $modelClass = $this->getModelClass($slug);
         $record = $modelClass::findOrFail($id);
-
         $fields = $this->getModelFields($record);
 
+        // Generate validation rules dynamically, including for data fields
         $validationRules = $this->generateValidationRules($fields);
         $validatedData = $request->validate($validationRules);
 
-        $record->fill($validatedData);
-
-        foreach ($fields as $field => $attributes) {
-            if ($attributes['type'] === 'relation') {
-                if ($attributes['relation_type'] === 'BelongsTo') {
-                    $relatedModel = $attributes['related_model'];
-                    $relatedId = $validatedData[$field] ?? null;
-                    
-                    if ($relatedId) {
-                        $relatedRecord = $relatedModel::find($relatedId);
-                        $record->{$field}()->associate($relatedRecord);
-                    } else {
-                        $record->{$field}()->dissociate();
-                    }
-                } elseif ($attributes['relation_type'] === 'HasMany') {
-                    $relatedData = $validatedData[$field] ?? [];
-                    
-                    $record->{$field}()->sync($relatedData);
-                }
-            }
+        // Manually handle the nested JSON data if present
+        $dataFields = $request->input('data', []);
+        if (!empty($dataFields)) {
+            $record->data = $dataFields; // directly assign validated data
         }
 
+        // Update other fields
+        $record->fill($validatedData);
         $record->save();
-
+        
         return redirect()->route('admin.index', $slug)->with('success', 'Record updated successfully!');
     }
-
 
 
     public function destroy($slug, $id)
@@ -241,9 +174,6 @@ class AdminController extends Controller
         abort(404, 'Model not found');
     }
 
-
-
-
     protected function getModelFields($modelInstance)
     {
         $fields = [];
@@ -255,22 +185,6 @@ class AdminController extends Controller
         return $fields;
     }
 
-
-    protected function getDynamicSelectOptions($fields, $record = null)
-    {
-        $selectOptions = [];
-
-        foreach ($fields as $field => $fieldDetails) {
-            if ($fieldDetails['type'] === 'relation' && $fieldDetails['relation_type'] === 'BelongsTo') {
-                $relatedModelClass = $fieldDetails['related_model'];
-                // $selectOptions[$field] = $relatedModelClass::pluck('name', 'id');
-                $selectOptions[$field] = $relatedModelClass::pluck('title', 'id');
-            }
-        }
-
-        return $selectOptions;
-    }
-
     protected function generateValidationRules($fields)
     {
         $rules = [];
@@ -279,39 +193,48 @@ class AdminController extends Controller
                 continue;
             }
 
-            $ruleParts = $fieldDetails['required'] ?? false ? ['required'] : ['nullable'];
+            $baseRule = $fieldDetails['required'] ?? false ? 'required' : 'nullable';
 
-            switch ($fieldDetails['type']) {
-                case 'text':
-                case 'textarea':
-                case 'select':
-                    $ruleParts[] = 'string';
-                    break;
-                case 'checkbox':
-                    $ruleParts[] = 'boolean';
-                    break;
-                case 'number':
-                    $ruleParts[] = 'integer';
-                    break;
-                case 'date':
-                    $ruleParts[] = 'date';
-                    break;
-                case 'datetime-local':
-                    $ruleParts[] = 'date_format:Y-m-d\TH:i:s';
-                    break;
-                default:
-                    $ruleParts[] = 'string';
-                    break;
+            // Handle nested data fields dynamically
+            if (Str::startsWith($field, 'data[')) {
+                $rules[$field] = "$baseRule|{$fieldDetails['type']}"; // Adjust based on the field type, e.g., string, integer
+                if (isset($fieldDetails['options'])) {
+                    $rules[$field] .= '|in:' . implode(',', array_keys($fieldDetails['options']));
+                }
+            } else {
+                // Normal field processing
+                $rules[$field] = $this->processValidationRule($fieldDetails);
             }
-
-            if (isset($fieldDetails['options'])) {
-                $ruleParts[] = 'in:' . implode(',', array_keys($fieldDetails['options']));
-            }
-
-            $rules[$field] = implode('|', $ruleParts);
         }
         return $rules;
     }
+
+    private function processValidationRule($details)
+    {
+        $rule = $details['required'] ? 'required' : 'nullable';
+        switch ($details['type']) {
+            case 'text':
+            case 'textarea':
+            case 'select':
+                $rule .= '|string';
+                break;
+            case 'checkbox':
+                $rule .= '|boolean';
+                break;
+            case 'number':
+                $rule .= '|integer';
+                break;
+            case 'date':
+                $rule .= '|date';
+                break;
+            // Add other types as needed
+        }
+        if (isset($details['options'])) {
+            $rule .= '|in:' . implode(',', array_keys($details['options']));
+        }
+        return $rule;
+    }
+
 
     protected function getAllModelClasses()
     {
@@ -332,34 +255,5 @@ class AdminController extends Controller
         }
 
         return $modelClasses;
-    }
-
-
-    protected function convertColumnTypeToHtmlType($columnType)
-    {
-        switch ($columnType) {
-            case 'string':
-            case 'varchar':
-            case 'char':
-                return 'text';
-            case 'text':
-            case 'mediumtext':
-            case 'longtext':
-                return 'textarea';
-            case 'boolean':
-            case 'tinyint':
-                return 'checkbox';
-            case 'integer':
-            case 'bigint':
-            case 'smallint':
-                return 'number';
-            case 'date':
-                return 'date';
-            case 'datetime':
-            case 'timestamp':
-                return 'datetime-local';
-            default:
-                return 'text';
-        }
     }
 }
