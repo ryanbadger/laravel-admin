@@ -28,7 +28,14 @@ class AdminController extends Controller
 
     public function settings()
     {
-        return view('laravel-admin::admin.settings');
+        // Get count of registered models
+        $modelClasses = $this->getAllModelClasses();
+        $model_count = count($modelClasses);
+
+        // Get pagination size from config or default
+        $pagination_size = config('laravel-admin.pagination_size', 25);
+
+        return view('laravel-admin::admin.settings', compact('model_count', 'pagination_size'));
     }
 
     public function index(Request $request, $slug)
