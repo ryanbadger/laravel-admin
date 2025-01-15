@@ -16,6 +16,9 @@ class AdminModuleServiceProvider extends ServiceProvider
         // Load views from the package with a namespace
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'laravel-admin');
 
+        // Load migrations
+        $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
+
         // Register middleware for use within the package
         $this->app['router']->aliasMiddleware('cms.access', CheckCmsAccess::class);
 
@@ -31,6 +34,11 @@ class AdminModuleServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../resources/assets' => public_path('vendor/laravel-admin'),
         ], 'laravel-admin-assets');
+
+        // Publish migrations
+        $this->publishes([
+            __DIR__.'/../../database/migrations' => database_path('migrations'),
+        ], 'laravel-admin-migrations');
 
         // Read the composer.json file of the package
         $composerJson = file_get_contents(__DIR__.'/../../composer.json');
