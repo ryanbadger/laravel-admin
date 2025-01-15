@@ -1,74 +1,45 @@
 @extends('laravel-admin::layouts.base')
 
-@section('title', 'Admin - ' . Str::title(str_replace('_', ' ', Str::singular($slug))))
+@section('title', ucfirst($slug))
 
 @section('header_buttons')
-    <a href="{{ route('admin.create', $slug) }}" class="btn btn-primary">Create New</a>
+    <a href="{{ route('admin.create', $slug) }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Create New {{ ucfirst(Str::singular($slug)) }}
+    </a>
 @endsection
 
 @section('content')
-    <div class="my-4">
-        <form action="{{ route('admin.index', $slug) }}" method="GET" class="mb-3">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request('search') }}">
-                <select name="sort" class="form-select">
-                    <option value="">Sort By</option>
-                    @foreach ($fields as $field => $details)
-                        @if ($details['show_in_list'] ?? false)
-                            <option value="{{ $field }}" {{ request('sort') == $field ? 'selected' : '' }}>
-                                {{ ucfirst(str_replace('_', ' ', $field)) }}
-                            </option>
-                        @endif
-                    @endforeach
-                </select>
-                <select name="direction" class="form-select">
-                    <option value="asc" {{ request('direction') == 'asc' ? 'selected' : '' }}>Ascending</option>
-                    <option value="desc" {{ request('direction') == 'desc' ? 'selected' : '' }}>Descending</option>
-                </select>
-                <button type="submit" class="btn btn-outline-secondary">Filter</button>
-            </div>
-        </form>
-
+    <div class="card">
         <div class="table-responsive">
-            <table class="table table-bordered table-striped mt-3">
-                <thead class="table-dark">
+            <table class="table table-striped mb-0">
+                <thead>
                     <tr>
-                        @foreach ($fields as $fieldName => $details)
-                            @if ($details['show_in_list'] ?? false)
-                                <th>{{ ucfirst(str_replace('_', ' ', $fieldName)) }}</th>
+                        @foreach($fields as $field => $details)
+                            @if($details['show_in_list'] ?? false)
+                                <th>{{ $details['label'] }}</th>
                             @endif
                         @endforeach
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($records as $record)
+                    @foreach($records as $record)
                         <tr>
-                            @foreach ($fields as $field => $details)
-                                @if ($details['show_in_list'] ?? false)
+                            @foreach($fields as $field => $details)
+                                @if($details['show_in_list'] ?? false)
                                     <td>
                                         @php
-                                            // Determine if the field is a nested 'data' field and fetch appropriately
-                                            $value = Str::startsWith($field, 'data[') ? data_get($record->data, Str::between($field, 'data[', ']')) : $record->$field;
+                                            $value = $record->$field;
                                         @endphp
 
                                         @switch($details['type'])
                                             @case('boolean')
-                                                {{ $value ? 'Yes' : 'No' }}
-                                                @break
-                                            @case('datetime')
                                                 @if($value)
-                                                    {{ $value->format('Y-m-d H:i:s') }}
-                                                @endif
-                                                @break
-                                            @case('media')
-                                                @if ($record->isImage())
-                                                    <img width="64" height="64" src="{{ $record->getUrl() }}" alt="Preview" class="d-block m-auto object-fit-cover rounded">
+                                                    <span class="badge bg-success">Yes</span>
                                                 @else
-                                                    <i class="d-block m-auto fas fa-4x fa-video"></i>
+                                                    <span class="badge bg-danger">No</span>
                                                 @endif
                                                 @break
-                                            
                                             @default
                                                 {{ Str::limit($value, 50) }}
                                                 @break
@@ -76,26 +47,28 @@
                                     </td>
                                 @endif
                             @endforeach
-
                             <td>
-                                <a href="{{ route('admin.edit', [$slug, $record->id]) }}" class="btn btn-sm btn-warning">
+                                <a href="{{ route('admin.edit', [$slug, $record->id]) }}" class="btn btn-sm btn-outline-primary me-2">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" style="display: inline;">
+                                <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this record?')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
                             </td>
                         </tr>
                     @endforeach
-
                 </tbody>
             </table>
         </div>
-
-        {{ $records->links() }}
     </div>
+
+    @if($records->hasPages())
+        <div class="mt-4">
+            {{ $records->links() }}
+        </div>
+    @endif
 @endsection

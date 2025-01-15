@@ -22,18 +22,15 @@ class AdminModuleServiceProvider extends ServiceProvider
         // Set Bootstrap as the default pagination style for any paginated views
         Paginator::useBootstrap();
 
-        // Load migrations directly from the package
-        $this->loadMigrationsFrom(__DIR__.'/../../src/Migrations');
+        // Publish views for customization
+        $this->publishes([
+            __DIR__.'/../../resources/views' => resource_path('views/vendor/laravel-admin'),
+        ], 'laravel-admin-views');
 
-        // Optionally publish assets if customization is required
+        // Publish assets
         $this->publishes([
             __DIR__.'/../../resources/assets' => public_path('vendor/laravel-admin'),
         ], 'laravel-admin-assets');
-
-        // You can still offer the publishing option for migrations in case modifications are needed
-        $this->publishes([
-            __DIR__.'/../../src/Migrations' => database_path('migrations')
-        ], 'laravel-admin-migrations');
 
         // Read the composer.json file of the package
         $composerJson = file_get_contents(__DIR__.'/../../composer.json');
@@ -41,5 +38,10 @@ class AdminModuleServiceProvider extends ServiceProvider
 
         // Share the package version with all views
         view()->share('laravel_admin_version', $composerConfig['version']);
+    }
+
+    public function register()
+    {
+        //
     }
 }
