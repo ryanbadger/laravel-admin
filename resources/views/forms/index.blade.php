@@ -26,18 +26,22 @@
                             <td>{{ $form->name }}</td>
                             <td>{{ $form->slug }}</td>
                             <td>{{ $form->fields->count() }}</td>
-                            <td>
-                                <a href="{{ route('admin.forms.edit', $form->id) }}" class="btn btn-sm btn-outline-primary me-2">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('admin.forms.destroy', $form->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                        onclick="return confirm('Are you sure you want to delete this form?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                            <td class="text-nowrap">
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="{{ route('admin.forms.edit', $form->id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <div id="delete-form-{{ $form->id }}">
+                                        <form action="{{ route('admin.forms.destroy', $form->id) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                onclick="return confirm('Are you sure you want to delete this form?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty

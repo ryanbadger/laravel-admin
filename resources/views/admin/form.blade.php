@@ -9,7 +9,7 @@
 @endsection
 
 @section('content')
-    <form method="POST" action="{{ isset($record) ? route('admin.update', [$slug, $record->id]) : route('admin.store', $slug) }}" enctype="multipart/form-data">
+    <form id="mainForm" method="POST" action="{{ isset($record) ? route('admin.update', [$slug, $record->id]) : route('admin.store', $slug) }}" enctype="multipart/form-data">
         @csrf
         @if(isset($record))
             @method('PUT')
@@ -45,17 +45,18 @@
                     </a>
                 @endif
             </div>
-            @if(isset($record))
-                <form action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this record?')">
-                        <i class="fas fa-trash me-2"></i>Delete
-                    </button>
-                </form>
-            @endif
         </div>
     </form>
+
+    @if(isset($record))
+        <form id="deleteForm" action="{{ route('admin.destroy', [$slug, $record->id]) }}" method="POST" class="mt-3">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this record?')">
+                <i class="fas fa-trash me-2"></i>Delete
+            </button>
+        </form>
+    @endif
 @endsection
 
 @if (isset($record) && isset($fields['media_upload']))
